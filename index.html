@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zomato</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif}
+body{background:#e0e0e0;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:16px 0}
+.phone{width:360px;height:740px;border-radius:36px;overflow:hidden;border:2px solid #bbb;margin:0 auto;background:#f5f5f5;box-shadow:0 8px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;position:relative}
+
+/* ── SHARED ── */
+.screen{display:none;flex-direction:column;width:100%;height:100%}
+.screen.active{display:flex}
+.statusbar-white{padding:10px 16px 4px;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:600;color:#555;background:#fff}
+.statusbar-blue{padding:10px 16px 4px;display:flex;justify-content:space-between;align-items:center;font-size:11px;font-weight:600;color:#fff}
+.scr{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.scr::-webkit-scrollbar{display:none}
+.toast{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;font-size:12px;padding:7px 16px;border-radius:20px;white-space:nowrap;opacity:0;transition:.25s;pointer-events:none;z-index:200}
+.toast.show{opacity:1}
+
+/* ── HOME ── */
+.sticky-hdr{flex-shrink:0;background:linear-gradient(160deg,#1565c0 0%,#1e88e5 60%,#42a5f5 100%);z-index:50}
+.topbar{padding:0 14px 8px;display:flex;justify-content:space-between;align-items:center}
+.loc-title{font-size:16px;font-weight:700;color:#fff}
+.loc-sub{font-size:11px;color:rgba(255,255,255,.8);margin-top:-1px}
+.top-icons{display:flex;gap:7px;align-items:center}
+.district-btn{background:#7c3aed;color:#fff;font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;cursor:pointer}
+.icon-btn{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;border:1.5px solid rgba(255,255,255,.3)}
+.searchrow{padding:0 14px 10px;display:flex;align-items:center;gap:8px}
+.searchbar{background:#fff;border-radius:10px;display:flex;align-items:center;padding:9px 12px;gap:8px;flex:1;cursor:text}
+.search-icon{color:#e23744;font-size:16px}.search-text{color:#bbb;font-size:14px;flex:1}.mic-icon{color:#e23744;font-size:16px}
+.veg-col{display:flex;flex-direction:column;align-items:center;gap:3px}
+.veg-label{font-size:10px;font-weight:700;color:#fff}
+.toggle-wrap{width:34px;height:19px;background:rgba(255,255,255,.3);border-radius:10px;position:relative;cursor:pointer;transition:.2s;border:1.5px solid rgba(255,255,255,.5)}
+.toggle-wrap.on{background:#1a9922;border-color:#1a9922}
+.toggle-dot{width:14px;height:14px;background:#fff;border-radius:50%;position:absolute;top:1px;left:1px;transition:.2s}
+.toggle-wrap.on .toggle-dot{left:17px}
+.zpl-banner{width:100%;height:168px;background:linear-gradient(135deg,#0d47a1,#1565c0 40%,#0288d1);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer}
+.lightning{position:absolute;font-size:40px;opacity:.7}
+.l1{top:10px;left:20px;transform:rotate(-15deg)}.l2{top:10px;right:20px;transform:rotate(15deg)}
+.l3{bottom:10px;left:60px;transform:rotate(-10deg)}.l4{bottom:10px;right:60px;transform:rotate(10deg)}
+.zpl-center{display:flex;flex-direction:column;align-items:center;z-index:2;position:relative}
+.bhim-badge{background:#fff;border-radius:8px;padding:3px 10px;font-size:10px;font-weight:700;color:#1565c0;margin-bottom:4px}
+.zpl-text{font-size:30px;font-weight:900;color:#fff;letter-spacing:1px;line-height:1}
+.hand-cricket{font-size:12px;color:rgba(255,255,255,.9);font-weight:600;margin:2px 0}
+.play-win{background:#e53935;color:#fff;font-size:15px;font-weight:900;padding:6px 28px;border-radius:6px;letter-spacing:1px;margin-top:4px}
+.hand-left{position:absolute;left:-4px;top:50%;transform:translateY(-50%);font-size:52px;z-index:3}
+.hand-right{position:absolute;right:-4px;top:50%;transform:translateY(-50%);font-size:52px;z-index:3}
+.dots-row{display:flex;justify-content:center;gap:5px;padding:7px 0 4px;background:#f5f5f5}
+.dot{width:7px;height:7px;border-radius:50%;background:#ccc}.dot.active{background:#e23744;width:18px;border-radius:4px}
+.cat-scroll{padding:8px 14px 0;display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;background:#f5f5f5}
+.cat-scroll::-webkit-scrollbar{display:none}
+.cat-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;flex-shrink:0;padding-bottom:6px;border-bottom:2.5px solid transparent}
+.cat-item.active{border-bottom:2.5px solid #e23744}
+.cat-img{width:56px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:26px;background:#fff;border:1px solid #eee}
+.cat-label{font-size:11px;font-weight:600;color:#444}.cat-item.active .cat-label{color:#e23744}
+.meals-badge{width:64px;height:48px;background:#fff;border-radius:8px;border:1px solid #eee;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.3;text-align:center;padding:4px}
+.meals-price{font-size:14px;font-weight:900;color:#1565c0}
+.filters{padding:8px 14px 8px;display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;background:#f5f5f5}
+.filters::-webkit-scrollbar{display:none}
+.filter-btn{border:1.5px solid #ddd;border-radius:20px;padding:6px 13px;font-size:12px;font-weight:600;background:#fff;cursor:pointer;white-space:nowrap;color:#333;transition:.15s}
+.filter-btn.active{background:#e23744;color:#fff;border-color:#e23744}
+.sec-title{padding:4px 14px 8px;font-size:12px;font-weight:700;color:#999;letter-spacing:1.2px;background:#f5f5f5}
+.small-grid{padding:0 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;background:#f5f5f5}
+.small-card{background:#fff;border-radius:12px;overflow:hidden;cursor:pointer;border:1px solid #eee;transition:.15s;position:relative}
+.small-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.small-card:active{transform:scale(.97)}
+.small-thumb{height:80px;display:flex;align-items:center;justify-content:center;font-size:28px;position:relative}
+.disc-badge{background:rgba(0,0,0,.62);color:#fff;font-size:7px;font-weight:700;padding:2px 4px;border-radius:3px;position:absolute;top:4px;left:4px;white-space:nowrap;line-height:1.4}
+.pct-b{position:absolute;top:4px;left:4px;background:#7c3aed;color:#fff;font-size:7px;font-weight:700;padding:2px 4px;border-radius:3px}
+.small-info{padding:5px 6px 7px}
+.small-name{font-size:10px;font-weight:700;color:#222;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.star-s{background:#1a9922;color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;display:inline-flex;align-items:center}
+.small-time{font-size:9px;color:#888;margin-top:2px}
+.feat-section{padding:0 14px;background:#f5f5f5}
+.feat-lbl{font-size:12px;font-weight:700;color:#999;letter-spacing:1.2px;margin-bottom:8px}
+.feat-card{background:#fff;border-radius:16px;overflow:hidden;cursor:pointer;border:1px solid #eee;margin-bottom:14px;transition:.15s}
+.feat-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.feat-card:active{transform:scale(.99)}
+.feat-img-wrap{position:relative;height:180px;overflow:hidden}
+.feat-img{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.feat-tag{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.55);color:#fff;font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px}
+.feat-bm{position:absolute;top:10px;right:10px;width:28px;height:28px;background:rgba(255,255,255,.85);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.feat-dots{position:absolute;bottom:10px;right:10px;display:flex;gap:3px}
+.fd{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.5)}.fd.a{background:#fff}
+.feat-info{padding:10px 12px 12px}
+.feat-name{font-size:17px;font-weight:800;color:#111;margin-bottom:4px}
+.feat-meta{font-size:12px;color:#888;margin-bottom:4px}
+.feat-rating{background:#1a9922;color:#fff;font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px;float:right;margin-top:-2px}
+.feat-offer{font-size:11px;color:#1565c0;font-weight:600;margin-top:4px}
+/* cart bar */
+.cart-bar{background:#fff;border-top:1px solid #f0f0f0;padding:8px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.cart-btn-red{background:#e23744;color:#fff;border-radius:30px;padding:8px 14px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;line-height:1.2;cursor:pointer}
+.home-cart-close{width:26px;height:26px;border-radius:50%;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:14px;color:#666;flex-shrink:0;cursor:pointer}
+.bottomnav{display:flex;border-top:1px solid #eee;background:#fff;flex-shrink:0;height:48px}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:9px;font-weight:600;color:#888;gap:1px}
+.nav-item.active{color:#e23744}.nav-icon{font-size:17px}
+.healthy-nav{flex:1.3;background:#1a9922;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:700;gap:1px;cursor:pointer}
+
+/* ── MENU SCREEN ── */
+.menu-hdr{flex-shrink:0;background:#fff;border-bottom:1px solid #eee}
+.menu-back{display:flex;align-items:center;gap:8px;padding:10px 14px 6px;cursor:pointer}
+.menu-rest-hero{height:160px;display:flex;align-items:center;justify-content:center;font-size:72px;position:relative}
+.menu-rest-info{padding:12px 14px 0}
+.menu-rest-name{font-size:20px;font-weight:800;color:#111}
+.menu-rest-meta{font-size:12px;color:#888;margin-top:3px;display:flex;align-items:center;gap:8px}
+.menu-rating{background:#1a9922;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;display:inline-flex;align-items:center;gap:3px}
+.menu-offer-strip{background:#e8f5e9;padding:8px 14px;font-size:11px;color:#1a9922;font-weight:600;display:flex;align-items:center;gap:6px;margin-top:8px}
+.menu-cats{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid #eee;background:#fff}
+.menu-cats::-webkit-scrollbar{display:none}
+.menu-cat-btn{padding:10px 16px;font-size:12px;font-weight:600;color:#888;cursor:pointer;white-space:nowrap;border-bottom:2.5px solid transparent;flex-shrink:0}
+.menu-cat-btn.active{color:#e23744;border-bottom:2.5px solid #e23744}
+.menu-section{padding:12px 14px 0}
+.menu-section-title{font-size:13px;font-weight:700;color:#333;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.menu-item{background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;display:flex;align-items:flex-start;gap:10px;border:1px solid #eee}
+.menu-item-info{flex:1}
+.menu-item-veg{width:14px;height:14px;border:2px solid #1a9922;border-radius:3px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;flex-shrink:0}
+.menu-item-veg-dot{width:6px;height:6px;background:#1a9922;border-radius:50%}
+.menu-item-nonveg{width:14px;height:14px;border:2px solid #b71c1c;border-radius:3px;display:flex;align-items:center;justify-content:center;margin-bottom:4px;flex-shrink:0}
+.menu-item-nv-dot{width:6px;height:6px;background:#b71c1c;border-radius:50%}
+.menu-item-name{font-size:13px;font-weight:700;color:#111}
+.menu-item-desc{font-size:11px;color:#888;margin-top:3px;line-height:1.4}
+.menu-item-price{font-size:13px;font-weight:700;color:#111;margin-top:6px}
+.menu-item-img{width:80px;height:80px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:38px;flex-shrink:0;position:relative;overflow:visible}
+.add-btn{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);background:#fff;border:1.5px solid #e23744;color:#e23744;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.qty-ctrl-sm{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;background:#e23744;border-radius:8px;overflow:hidden;height:28px;white-space:nowrap}
+.qty-btn-sm{width:26px;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;cursor:pointer;font-weight:700}
+.qty-num-sm{min-width:22px;text-align:center;font-size:13px;font-weight:700;color:#fff}
+
+/* ── CART PAGE ── */
+.card{background:#fff;border-radius:14px;padding:14px 16px}
+.gold-add-btn{border:1.5px solid #e23744;color:#e23744;background:#fff;border-radius:8px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer}
+.veg-dot{width:16px;height:16px;border:2px solid #1a9922;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.veg-inner{width:8px;height:8px;background:#1a9922;border-radius:50%}
+.qty-ctrl{display:flex;align-items:center;border:1.5px solid #e23744;border-radius:8px;overflow:hidden;height:32px;flex-shrink:0}
+.qty-btn{width:28px;height:100%;display:flex;align-items:center;justify-content:center;font-size:16px;color:#e23744;cursor:pointer;font-weight:700;background:#fff}
+.qty-btn:hover{background:#fff5f5}
+.qty-num{width:26px;text-align:center;font-size:14px;font-weight:700;color:#111}
+.notes-row{display:flex;gap:8px}
+.note-btn{flex:1;background:#fff;border:1.5px solid #eee;border-radius:22px;padding:9px 12px;font-size:12px;color:#555;cursor:pointer;display:flex;align-items:center;gap:6px}
+.upsell-scroll{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none}
+.upsell-scroll::-webkit-scrollbar{display:none}
+.upsell-item{flex-shrink:0;width:100px;cursor:pointer}
+.upsell-img{width:100px;height:90px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:36px;position:relative}
+.upsell-add{position:absolute;bottom:6px;right:6px;width:26px;height:26px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#e23744;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.u-veg{position:absolute;bottom:6px;left:6px;width:14px;height:14px;border:2px solid #1a9922;border-radius:3px;background:#fff;display:flex;align-items:center;justify-content:center}
+.u-vi{width:6px;height:6px;background:#1a9922;border-radius:50%}
+.u-nv{position:absolute;bottom:6px;left:6px;width:14px;height:14px;border:2px solid #b71c1c;border-radius:3px;background:#fff;display:flex;align-items:center;justify-content:center}
+.u-nvi{width:6px;height:6px;background:#b71c1c;border-radius:50%}
+.bill-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;color:#444}
+.bill-muted{color:#888;font-size:12px}
+.bill-green{color:#1a9922;font-size:12px}
+.bill-total{font-size:15px;font-weight:800;color:#111;padding-top:8px}
+.bill-div{border:none;border-top:1px dashed #eee;margin:8px 0}
+.pay-bar{flex-shrink:0;background:#fff;border-top:1px solid #eee;padding:10px 14px}
+.place-btn{background:#e23744;color:#fff;border-radius:12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;overflow:hidden}
+.place-total{padding:14px 16px;display:flex;flex-direction:column}
+.place-amt{font-size:18px;font-weight:900}
+.place-lbl{font-size:10px;font-weight:600;opacity:.85;letter-spacing:.5px}
+.place-action{padding:14px 20px;font-size:15px;font-weight:800;border-left:1px solid rgba(255,255,255,.2)}
+</style>
+</head>
+<body>
+<div class="phone">
+
+<!-- ══════════ HOME SCREEN ══════════ -->
+<div class="screen active" id="homeScreen">
+  <div class="sticky-hdr">
+    <div class="statusbar-blue">
+      <span>15:40</span>
+      <span style="display:flex;gap:5px;align-items:center">🔇 4G |||
+        <span style="background:#e23744;color:#fff;font-size:9px;padding:1px 6px;border-radius:12px;font-weight:700">36</span>
+      </span>
+    </div>
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:4px;cursor:pointer" onclick="toast('Change location')">
+        <span style="color:#fff;font-size:15px">📍</span>
+        <div><div class="loc-title">College <span style="font-size:12px">▾</span></div><div class="loc-sub">H block, H block west housing…</div></div>
+      </div>
+      <div class="top-icons">
+        <div class="district-btn" onclick="toast('District by Zomato')">district</div>
+        <div class="icon-btn" onclick="toast('Wallet')">💳</div>
+        <div class="icon-btn" style="background:rgba(255,255,255,.85);font-weight:700;font-size:13px;color:#1565c0;border:none" onclick="toast('Account')">A</div>
+      </div>
+    </div>
+    <div class="searchrow">
+      <div class="searchbar" onclick="toast('Search opened')">
+        <span class="search-icon">🔍</span><span class="search-text">Restaurant name or a dish…</span><span class="mic-icon">🎙️</span>
+      </div>
+      <div class="veg-col">
+        <span class="veg-label">VEG</span>
+        <div class="toggle-wrap" id="vegtoggle" onclick="toggleVeg()"><div class="toggle-dot"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="scr" style="background:#f5f5f5">
+    <div class="zpl-banner" onclick="toast('ZPL Hand Cricket!')">
+      <div class="lightning l1">⚡</div><div class="lightning l2">⚡</div><div class="lightning l3">⚡</div><div class="lightning l4">⚡</div>
+      <div class="hand-left">✌️</div><div class="hand-right">👍</div>
+      <div class="zpl-center">
+        <div class="bhim-badge">BHIM▶ <span style="font-size:9px;color:#888">Bharat's own payments app</span></div>
+        <div style="display:flex;align-items:center;gap:6px;margin:2px 0"><span style="font-size:18px">🏏</span><div class="zpl-text">ZPL</div><span style="font-size:18px">🏏</span></div>
+        <div class="hand-cricket">HAND CRICKET</div><div class="play-win">PLAY &amp; WIN</div>
+      </div>
+    </div>
+    <div class="dots-row"><div class="dot"></div><div class="dot"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div></div>
+    <div class="cat-scroll">
+      <div class="cat-item" onclick="toast('Meals under ₹250')">
+        <div class="meals-badge"><span style="color:#e23744;font-size:7px;font-weight:800">• MEALS UNDER •</span><div class="meals-price">₹250</div><span style="color:#888;font-size:8px">Explore ›</span></div>
+        <div class="cat-label" style="visibility:hidden;font-size:10px">x</div>
+      </div>
+      <div class="cat-item active" id="cat-all" onclick="filterCat('all',this)"><div class="cat-img">🍽️</div><div class="cat-label">All</div></div>
+      <div class="cat-item" id="cat-momos" onclick="filterCat('momos',this)"><div class="cat-img">🥟</div><div class="cat-label">Momos</div></div>
+      <div class="cat-item" id="cat-pizza" onclick="filterCat('pizza',this)"><div class="cat-img">🍕</div><div class="cat-label">Pizza</div></div>
+      <div class="cat-item" id="cat-burger" onclick="filterCat('burger',this)"><div class="cat-img">🍔</div><div class="cat-label">Burger</div></div>
+      <div class="cat-item" id="cat-biryani" onclick="filterCat('biryani',this)"><div class="cat-img">🍛</div><div class="cat-label">Biryani</div></div>
+    </div>
+    <div class="filters">
+      <div class="filter-btn" onclick="filterClick(this)">⚙ Filters ▾</div>
+      <div class="filter-btn" onclick="filterClick(this)">Gourmet</div>
+      <div class="filter-btn" onclick="filterClick(this)">New to you</div>
+      <div class="filter-btn" onclick="filterClick(this)">Great offers</div>
+      <div class="filter-btn" onclick="filterClick(this)">Rating 4.0+</div>
+    </div>
+    <div class="sec-title">RECOMMENDED FOR YOU</div>
+    <div class="small-grid" id="smallgrid"></div>
+    <div class="feat-section"><div class="feat-lbl">Featured</div><div id="featgrid"></div></div>
+    <div style="height:8px"></div>
+  </div>
+  <div class="cart-bar" id="homeCartBar" style="display:none">
+    <div style="width:38px;height:38px;border-radius:8px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0" id="homeCartThumb">🍕</div>
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:700;color:#222" id="homeCartName">Restaurant</div>
+      <div style="font-size:11px;color:#e23744;font-weight:600">View Menu ▶</div>
+    </div>
+    <div class="cart-btn-red" onclick="goCart()">
+      <div id="homeCartPrice" style="font-size:14px;font-weight:900">₹0</div>
+      <div style="font-size:9px;font-weight:500;opacity:.9">incl. other fees</div>
+    </div>
+    <div class="home-cart-close" onclick="clearCart()">✕</div>
+  </div>
+  <div class="bottomnav">
+    <div class="nav-item active" onclick="navClick(this,'Home')"><span class="nav-icon">🏠</span>Home</div>
+    <div class="nav-item" onclick="navClick(this,'Under ₹250')"><span class="nav-icon">🏷️</span>Under ₹250</div>
+    <div class="nav-item" onclick="navClick(this,'Offers')"><span class="nav-icon">🎁</span>Offers</div>
+    <div class="nav-item" onclick="navClick(this,'Dining')"><span class="nav-icon">🍽️</span>Dining</div>
+    <div class="healthy-nav" onclick="toast('Healthy Mode ON')"><span class="nav-icon">💚</span>Healthy Mode</div>
+  </div>
+</div>
+
+<!-- ══════════ MENU SCREEN ══════════ -->
+<div class="screen" id="menuScreen">
+  <div class="menu-hdr">
+    <div class="statusbar-white">
+      <span id="menuTime">15:42</span>
+      <span style="display:flex;gap:5px;align-items:center">4G |||
+        <span style="background:#555;color:#fff;font-size:9px;padding:1px 6px;border-radius:12px;font-weight:700">36</span>
+      </span>
+    </div>
+    <div class="menu-back" onclick="goHome()">
+      <span style="font-size:22px;color:#555">‹</span>
+      <span style="font-size:13px;color:#888" id="menuBackLabel">Restaurants</span>
+      <span style="margin-left:auto;font-size:18px;color:#888;cursor:pointer" onclick="event.stopPropagation();toast('Share restaurant')">↗</span>
+    </div>
+  </div>
+  <div class="scr" style="background:#f5f5f5" id="menuScroll">
+    <div class="menu-rest-hero" id="menuHero" style="background:#e8f5e9;font-size:80px">🍕</div>
+    <div style="background:#fff;padding-bottom:10px">
+      <div class="menu-rest-info">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div class="menu-rest-name" id="menuRestName">Restaurant</div>
+          <div class="menu-rating" id="menuRating">★ 4.4</div>
+        </div>
+        <div class="menu-rest-meta">
+          <span id="menuTime2">30-35 mins</span>
+          <span>·</span>
+          <span id="menuDist">5.8 km</span>
+          <span>·</span>
+          <span id="menuReviews">100+ ratings</span>
+        </div>
+      </div>
+      <div class="menu-offer-strip" id="menuOffer">🏷️ Flat ₹100 OFF above ₹299</div>
+    </div>
+    <div class="menu-cats" id="menuCatTabs"></div>
+    <div id="menuSections" style="padding-bottom:80px"></div>
+  </div>
+  <div class="cart-bar" id="menuCartBar" style="display:none">
+    <div style="width:38px;height:38px;border-radius:8px;background:#eee;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0" id="menuCartThumb">🍕</div>
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:700;color:#222" id="menuCartName">Restaurant</div>
+      <div style="font-size:11px;color:#e23744;font-weight:600">View Cart ▶</div>
+    </div>
+    <div class="cart-btn-red" onclick="goCart()">
+      <div id="menuCartPrice" style="font-size:14px;font-weight:900">₹0</div>
+      <div style="font-size:9px;font-weight:500;opacity:.9">incl. other fees</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ CART SCREEN ══════════ -->
+<div class="screen" id="cartScreen">
+  <div style="background:#fff;flex-shrink:0">
+    <div class="statusbar-white">
+      <span>15:48</span>
+      <span style="display:flex;gap:5px;align-items:center">4G |||
+        <span style="background:#555;color:#fff;font-size:9px;padding:1px 6px;border-radius:12px;font-weight:700">69</span>
+      </span>
+    </div>
+    <div style="padding:0 14px 12px;display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center">
+        <span style="font-size:22px;color:#555;cursor:pointer;margin-right:8px" onclick="goMenuFromCart()">‹</span>
+        <div>
+          <div style="font-size:12px;color:#888;font-weight:500" id="cartRestName">Restaurant</div>
+          <div style="font-size:15px;font-weight:700;color:#111">45-50 mins to College <span style="color:#888;font-weight:400;font-size:12px">| H block… ▾</span></div>
+        </div>
+      </div>
+      <span style="font-size:18px;color:#888;cursor:pointer" onclick="toast('Share')">↗</span>
+    </div>
+  </div>
+  <div class="scr" style="background:#f0f0f5;padding:10px 12px" id="cartScroll">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="card" style="background:#fff8f0;border:1px solid #f0e0cc">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+          <div style="display:flex;gap:8px;flex:1">
+            <span style="font-size:22px">👑</span>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#111">Get Gold for 3 months at ₹1</div>
+              <div style="font-size:12px;color:#777;margin-top:2px">FREE delivery above ₹99 and extra offers</div>
+              <div style="font-size:12px;color:#e23744;font-weight:600;margin-top:6px;cursor:pointer" onclick="toast('Learn more about Gold')">Learn more ▶</div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+            <div class="gold-add-btn" onclick="toast('Gold added!')">ADD</div>
+            <div style="font-size:12px;color:#888">₹1</div>
+          </div>
+        </div>
+      </div>
+      <!-- Cart items list -->
+      <div class="card" id="cartItemsCard">
+        <div id="cartItemsList"></div>
+        <div style="color:#e23744;font-size:13px;font-weight:700;cursor:pointer;margin-top:12px;display:flex;align-items:center;gap:4px;padding-top:10px;border-top:1px solid #f5f5f5" onclick="goMenuFromCart()">
+          <span style="font-size:16px;font-weight:900">+</span> Add more items
+        </div>
+      </div>
+      <div class="notes-row">
+        <div class="note-btn" onclick="toast('Add a note')">📋 Add a note for the restaurant</div>
+        <div class="note-btn" style="flex:0.6;justify-content:center" onclick="toast('Cutlery preference')">🍴 Don't send</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:32px;height:32px;background:#f5f5f5;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px">⊞</div>
+          <div style="font-size:14px;font-weight:700;color:#111">Complete your meal with</div>
+        </div>
+        <div class="upsell-scroll">
+          <div class="upsell-item" onclick="toast('Coca Cola added!')"><div class="upsell-img" style="background:#1a1a2e">🥤<div class="u-nv"><div class="u-nvi"></div></div><div class="upsell-add">+</div></div><div style="font-size:11px;font-weight:600;color:#222;margin-top:6px;line-height:1.3">Coca Cola Bottle</div><div style="font-size:11px;color:#555;margin-top:2px">₹66.50</div></div>
+          <div class="upsell-item" onclick="toast('Garlic Bread added!')"><div class="upsell-img" style="background:#fff3e0">🥖<div class="u-veg"><div class="u-vi"></div></div><div class="upsell-add">+</div></div><div style="font-size:11px;font-weight:600;color:#222;margin-top:6px;line-height:1.3">Cheesy Garlic Bread</div><div style="font-size:11px;color:#555;margin-top:2px">₹129</div></div>
+          <div class="upsell-item" onclick="toast('Garlic Bread added!')"><div class="upsell-img" style="background:#fff8e1">🍞<div class="u-veg"><div class="u-vi"></div></div><div class="upsell-add">+</div></div><div style="font-size:11px;font-weight:600;color:#222;margin-top:6px;line-height:1.3">Plain Herbed Garlic Bread</div><div style="font-size:11px;color:#555;margin-top:2px">₹109</div></div>
+          <div class="upsell-item" onclick="toast('Kheer added!')"><div class="upsell-img" style="background:#fce4ec">🍮<div class="u-nv"><div class="u-nvi"></div></div><div class="upsell-add">+</div></div><div style="font-size:11px;font-weight:600;color:#222;margin-top:6px;line-height:1.3">Chick Kheer</div><div style="font-size:11px;color:#555;margin-top:2px">₹169</div></div>
+        </div>
+      </div>
+      <!-- Bill -->
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:#111;margin-bottom:10px">🧾 Bill Summary</div>
+        <div class="bill-row"><span>Item total</span><span id="billItemTotal">₹0</span></div>
+        <div class="bill-row bill-muted"><span>Delivery fee</span><span>₹49</span></div>
+        <div class="bill-row bill-muted"><span>Platform fee</span><span>₹9</span></div>
+        <div class="bill-row bill-muted" id="billPkgRow" style="display:none"><span>📦 Packaging charges</span><span class="pkg-amt">₹0</span></div>
+        <div class="bill-row bill-muted"><span>GST &amp; charges</span><span>₹22</span></div>
+        <div class="bill-row bill-green"><span>🏷️ Discount applied</span><span>− ₹0</span></div>
+        <hr class="bill-div">
+        <div class="bill-row bill-total"><span>To pay</span><span id="billTotal">₹0</span></div>
+      </div>
+      <div class="card" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toast('Zomato Money')">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;background:#ffe5e5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">💳</div>
+          <div><div style="font-size:13px;font-weight:700;color:#111">Zomato Money</div><div style="font-size:11px;color:#888;margin-top:1px">Single tap payments. Zero failures</div></div>
+        </div>
+        <span style="font-size:18px;color:#bbb">›</span>
+      </div>
+      <div style="height:4px"></div>
+    </div>
+  </div>
+  <div class="pay-bar">
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+      <span style="font-size:16px">🎨</span>
+      <div>
+        <div style="font-size:10px;color:#888;font-weight:600;letter-spacing:.5px">PAY USING ▲</div>
+        <div style="font-size:13px;font-weight:700;color:#111">Google Pay UPI</div>
+      </div>
+    </div>
+    <div class="place-btn" onclick="trackPlaceOrder()">
+      <div class="place-total"><div class="place-amt" id="placeAmt">₹0</div><div class="place-lbl">TOTAL</div></div>
+      <div class="place-action">Place Order ▶</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ── DATA ──
+const DELIVERY=49,PLATFORM=9,GST=22;
+
+const restaurants = [
+  {id:'sandwich',name:"Sandwich Junction",emoji:"🧋",rating:"4.4",reviews:"100+",time:"30-35 mins",dist:"5.8 km",offer:"Flat ₹100 OFF above ₹299",cat:"all",bg:"#e8f5e9",
+   menu:[
+    {cat:"Sandwiches",items:[
+      {id:'s1',name:"Veg Club Sandwich",desc:"Toasted layers with veggies, cheese & sauce",price:149,veg:true,emoji:"🥪"},
+      {id:'s2',name:"Paneer Tikka Sandwich",desc:"Grilled paneer with tandoori spices",price:179,veg:true,emoji:"🫓"},
+      {id:'s3',name:"Chicken BLT",desc:"Crispy chicken, lettuce, tomato, mayo",price:199,veg:false,emoji:"🥪"},
+    ]},
+    {cat:"Drinks",items:[
+      {id:'s4',name:"Cold Coffee",desc:"Chilled blended coffee with ice cream",price:99,veg:true,emoji:"🧋",packaging:true},
+      {id:'s5',name:"Fresh Lime Soda",desc:"Chilled lime soda with mint",price:69,veg:true,emoji:"🥤",packaging:true},
+    ]},
+  ]},
+  {id:'samosa',name:"City Samosa",emoji:"🥙",rating:"4.0",reviews:"200+",time:"35-40 mins",dist:"3.1 km",offer:"₹40 OFF above ₹349",cat:"all",bg:"#fff8e1",
+   menu:[
+    {cat:"Samosas",items:[
+      {id:'cs1',name:"Aloo Samosa",desc:"Classic crispy potato samosa",price:20,veg:true,emoji:"🥟"},
+      {id:'cs2',name:"Paneer Samosa",desc:"Stuffed with spiced cottage cheese",price:30,veg:true,emoji:"🥟"},
+      {id:'cs3',name:"Chicken Samosa",desc:"Minced chicken with spices",price:35,veg:false,emoji:"🥟"},
+    ]},
+    {cat:"Combos",items:[
+      {id:'cs4',name:"Samosa Chaat",desc:"4 samosas with chutneys and yogurt",price:89,veg:true,emoji:"🫕"},
+    ]},
+  ]},
+  {id:'gozeroe',name:"Go Zero Ice C",emoji:"🍦",rating:"4.2",reviews:"150+",time:"45-50 mins",dist:"6.2 km",offer:"50% OFF on select items",cat:"all",bg:"#f3e5f5",
+   menu:[
+    {cat:"Ice Creams",items:[
+      {id:'gz1',name:"Mango Sorbet",desc:"Dairy-free mango frozen dessert",price:129,veg:true,emoji:"🍧",packaging:true},
+      {id:'gz2',name:"Choco Fudge",desc:"Zero sugar chocolate ice cream",price:149,veg:true,emoji:"🍫",packaging:true},
+    ]},
+  ]},
+  {id:'pizzahut',name:"Pizza Hut",emoji:"🍕",rating:"4.1",reviews:"500+",time:"25-30 mins",dist:"2.4 km",offer:"₹50 OFF above ₹299",cat:"pizza",bg:"#fff3e0",
+   menu:[
+    {cat:"Pizzas",items:[
+      {id:'ph1',name:"Margherita",desc:"Classic tomato sauce and mozzarella",price:199,veg:true,emoji:"🍕",packaging:true},
+      {id:'ph2',name:"Peppy Paneer",desc:"Paneer with capsicum and onions",price:249,veg:true,emoji:"🍕",packaging:true},
+      {id:'ph3',name:"Chicken Supreme",desc:"Loaded with chicken and veggies",price:299,veg:false,emoji:"🍕",packaging:true},
+    ]},
+    {cat:"Sides",items:[
+      {id:'ph4',name:"Garlic Breadsticks",desc:"4 pc with dipping sauce",price:99,veg:true,emoji:"🥖"},
+    ]},
+  ]},
+  {id:'dominos',name:"Domino's",emoji:"🍕",rating:"4.3",reviews:"800+",time:"20-25 mins",dist:"1.8 km",offer:"Buy 1 Get 1 Free",cat:"pizza",bg:"#fce4ec",
+   menu:[
+    {cat:"Pizzas",items:[
+      {id:'d1',name:"Margherita Classic",desc:"Cheese and tomato sauce",price:149,veg:true,emoji:"🍕",packaging:true},
+      {id:'d2',name:"Double Cheese",desc:"Extra mozzarella loaded",price:199,veg:true,emoji:"🍕",packaging:true},
+      {id:'d3',name:"Chicken Kheema",desc:"Spiced minced chicken",price:249,veg:false,emoji:"🍕",packaging:true},
+    ]},
+    {cat:"Desserts",items:[
+      {id:'d4',name:"Choco Lava Cake",desc:"Warm chocolate molten cake",price:99,veg:true,emoji:"🍰",packaging:true},
+    ]},
+  ]},
+  {id:'mcdonalds',name:"McDonald's",emoji:"🍔",rating:"4.0",reviews:"1000+",time:"20-25 mins",dist:"2.0 km",offer:"₹30 OFF above ₹199",cat:"burger",bg:"#fffde7",
+   menu:[
+    {cat:"Burgers",items:[
+      {id:'mc1',name:"McAloo Tikki",desc:"Spiced potato patty with sauce",price:59,veg:true,emoji:"🍔"},
+      {id:'mc2',name:"McVeggie",desc:"Veggie patty with lettuce and cheese",price:89,veg:true,emoji:"🍔"},
+      {id:'mc3',name:"McChicken",desc:"Crispy chicken with mayo",price:109,veg:false,emoji:"🍔"},
+    ]},
+    {cat:"Meals",items:[
+      {id:'mc4',name:"McChicken Meal",desc:"Burger + fries + cola",price:199,veg:false,emoji:"🍱",packaging:true},
+      {id:'mc5',name:"McAloo Meal",desc:"McAloo Tikki + fries + cola",price:149,veg:true,emoji:"🍱",packaging:true},
+    ]},
+    {cat:"Sides",items:[
+      {id:'mc6',name:"Medium Fries",desc:"Golden crispy french fries",price:79,veg:true,emoji:"🍟"},
+    ]},
+  ]},
+  {id:'burgerking',name:"Burger King",emoji:"🍔",rating:"3.9",reviews:"300+",time:"25-30 mins",dist:"3.5 km",offer:"₹40 OFF above ₹249",cat:"burger",bg:"#e3f2fd",
+   menu:[
+    {cat:"Burgers",items:[
+      {id:'bk1',name:"Whopper Jr",desc:"Flame-grilled beef patty with veggies",price:149,veg:false,emoji:"🍔"},
+      {id:'bk2',name:"Crispy Veg",desc:"Crispy veggie patty with lettuce",price:109,veg:true,emoji:"🍔"},
+    ]},
+  ]},
+  {id:'momomagic',name:"Momo Magic",emoji:"🥟",rating:"4.5",reviews:"400+",time:"30-35 mins",dist:"4.0 km",offer:"₹20 OFF above ₹149",cat:"momos",bg:"#e8f5e9",
+   menu:[
+    {cat:"Momos",items:[
+      {id:'mm1',name:"Steamed Veg Momos",desc:"8 pc soft steamed dumplings",price:99,veg:true,emoji:"🥟",packaging:true},
+      {id:'mm2',name:"Pan Fried Momos",desc:"8 pc crispy fried dumplings",price:119,veg:true,emoji:"🥟",packaging:true},
+      {id:'mm3',name:"Chicken Momos",desc:"8 pc juicy chicken dumplings",price:139,veg:false,emoji:"🥟",packaging:true},
+    ]},
+    {cat:"Extras",items:[
+      {id:'mm4',name:"Extra Sauce",desc:"Spicy red chilli sauce",price:19,veg:true,emoji:"🫙"},
+    ]},
+  ]},
+  {id:'biryanizone',name:"Biryani Zone",emoji:"🍛",rating:"4.4",reviews:"600+",time:"40-45 mins",dist:"5.0 km",offer:"₹80 OFF above ₹499",cat:"biryani",bg:"#fff8e1",
+   menu:[
+    {cat:"Biryani",items:[
+      {id:'bz1',name:"Veg Dum Biryani",desc:"Fragrant basmati with mixed veggies",price:199,veg:true,emoji:"🍛",packaging:true},
+      {id:'bz2',name:"Chicken Dum Biryani",desc:"Slow-cooked chicken in aromatic spices",price:249,veg:false,emoji:"🍛",packaging:true},
+      {id:'bz3',name:"Mutton Biryani",desc:"Tender mutton pieces in saffron rice",price:299,veg:false,emoji:"🍛",packaging:true},
+    ]},
+    {cat:"Sides",items:[
+      {id:'bz4',name:"Raita",desc:"Chilled yogurt with cucumber",price:49,veg:true,emoji:"🥣"},
+    ]},
+  ]},
+];
+
+const featuredRestaurants=[
+  {id:'sandwich',name:"Sandwich Junction",emoji:"🥪",rating:"4.4",reviews:"100+",time:"30-35 mins",dist:"5.8 km",offer:"Flat ₹100 OFF above ₹299",tag:"Peri-peri French Fries · ₹159",color:"#e8f5e9",gold:true},
+  {id:'samosa',name:"City Samosa",emoji:"🥙",rating:"4.0",reviews:"200+",time:"35-40 mins",dist:"3.1 km",offer:"₹40 OFF above ₹349",tag:"Samosa Chaat · ₹89",color:"#fff8e1",gold:false},
+  {id:'biryanizone',name:"Biryani Zone",emoji:"🍛",rating:"4.4",reviews:"600+",time:"40-45 mins",dist:"5.0 km",offer:"₹80 OFF above ₹499",tag:"Chicken Dum Biryani · ₹249",color:"#fff3e0",gold:true},
+];
+
+// ── CART STATE ──
+let cart = {}; // {itemId: {item, qty, restId}}
+let currentRestId = null;
+
+function cartTotal() {
+  return Object.values(cart).reduce((s,v)=>s+(v.item.price+(v.item.packaging?30:0))*v.qty, 0);
+}
+function packagingTotal() {
+  return Object.values(cart).reduce((s,v)=>v.item.packaging?s+30*v.qty:s, 0);
+}
+function cartCount() {
+  return Object.values(cart).reduce((s,v)=>s+v.qty, 0);
+}
+function fees() { return DELIVERY+PLATFORM+GST; }
+function grandTotal() { return cartTotal()+fees(); }
+
+function updateCartBars() {
+  const rawItem = Object.values(cart).reduce((s,v)=>s+v.item.price*v.qty,0);
+  const pkg = packagingTotal();
+  const total = rawItem + pkg + DELIVERY + PLATFORM + GST;
+  const count = cartCount();
+  const rest = restaurants.find(r=>r.id===currentRestId);
+  const show = count > 0;
+
+  const hcb = document.getElementById('homeCartBar');
+  const mcb = document.getElementById('menuCartBar');
+
+  if(show && rest) {
+    hcb.style.display='flex';
+    mcb.style.display='flex';
+    document.getElementById('homeCartThumb').textContent=rest.emoji;
+    document.getElementById('homeCartName').textContent=rest.name;
+    document.getElementById('homeCartPrice').textContent='₹'+total;
+    document.getElementById('menuCartThumb').textContent=rest.emoji;
+    document.getElementById('menuCartName').textContent=rest.name;
+    document.getElementById('menuCartPrice').textContent='₹'+total;
+  } else {
+    hcb.style.display='none';
+    mcb.style.display='none';
+  }
+}
+
+function clearCart() {
+  cart={};
+  currentRestId=null;
+  updateCartBars();
+  renderMenuItems(); // refresh add buttons if on menu
+  toast('Cart cleared');
+}
+
+// ── SCREENS ──
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goHome() { show('homeScreen'); }
+
+function openRestaurant(restId) {
+  const rest = restaurants.find(r=>r.id===restId);
+  if(!rest) return;
+  currentRestId = restId;
+  document.getElementById('menuRestName').textContent = rest.name;
+  document.getElementById('menuRating').textContent = '★ '+rest.rating;
+  document.getElementById('menuTime2').textContent = rest.time;
+  document.getElementById('menuDist').textContent = rest.dist;
+  document.getElementById('menuReviews').textContent = rest.reviews+' ratings';
+  document.getElementById('menuOffer').textContent = '🏷️ '+rest.offer;
+  document.getElementById('menuBackLabel').textContent = rest.name;
+  const hero = document.getElementById('menuHero');
+  hero.style.background = rest.bg;
+  hero.textContent = rest.emoji;
+  // render cat tabs
+  const tabs = document.getElementById('menuCatTabs');
+  tabs.innerHTML = rest.menu.map((sec,i)=>`<div class="menu-cat-btn${i===0?' active':''}" onclick="scrollToSection(${i},this)">${sec.cat}</div>`).join('');
+  renderMenuItems();
+  document.getElementById('menuScroll').scrollTop=0;
+  updateCartBars();
+  show('menuScreen');
+}
+
+function renderMenuItems() {
+  const rest = restaurants.find(r=>r.id===currentRestId);
+  if(!rest) return;
+  const container = document.getElementById('menuSections');
+  container.innerHTML = rest.menu.map((sec,si)=>`
+    <div class="menu-section" id="menusec${si}">
+      <div class="menu-section-title">${sec.cat} <span style="font-size:11px;color:#aaa;font-weight:400">(${sec.items.length})</span></div>
+      ${sec.items.map(item=>{
+        const inCart = cart[item.id];
+        const qtyHtml = inCart
+          ? `<div class="qty-ctrl-sm" id="qc${item.id}">
+               <div class="qty-btn-sm" onclick="event.stopPropagation();changeItemQty('${item.id}',-1)">−</div>
+               <div class="qty-num-sm" id="qn${item.id}">${inCart.qty}</div>
+               <div class="qty-btn-sm" onclick="event.stopPropagation();changeItemQty('${item.id}',1)">+</div>
+             </div>`
+          : `<div class="add-btn" id="ab${item.id}" onclick="event.stopPropagation();addItem('${item.id}')">ADD</div>`;
+        return `<div class="menu-item" onclick="toast('${item.name} — ₹${item.price}')">
+          <div class="menu-item-info">
+            <div class="${item.veg?'menu-item-veg':'menu-item-nonveg'}"><div class="${item.veg?'menu-item-veg-dot':'menu-item-nv-dot'}"></div></div>
+            <div class="menu-item-name">${item.name}</div>
+            <div class="menu-item-desc">${item.desc}</div>
+            <div class="menu-item-price">₹${item.price}</div>
+            ${item.packaging ? `<div style="font-size:10px;color:#e07b00;font-weight:600;margin-top:3px;display:flex;align-items:center;gap:3px"><span>📦</span> +₹30 packaging</div>` : ''}
+          </div>
+          <div class="menu-item-img" style="background:${rest.bg}">${item.emoji}${qtyHtml}</div>
+        </div>`;
+      }).join('')}
+    </div>`).join('');
+}
+
+function scrollToSection(idx,el) {
+  document.querySelectorAll('.menu-cat-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  const sec = document.getElementById('menusec'+idx);
+  if(sec) sec.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function addItem(itemId) {
+  const rest = restaurants.find(r=>r.id===currentRestId);
+  if(!rest) return;
+  const item = rest.menu.flatMap(s=>s.items).find(i=>i.id===itemId);
+  if(!item) return;
+  // if cart has items from a different restaurant, ask
+  if(Object.keys(cart).length>0 && Object.values(cart)[0].restId!==currentRestId) {
+    if(!confirm('Your cart has items from another restaurant. Clear it?')) return;
+    cart={};
+  }
+  cart[itemId] = {item, qty:1, restId:currentRestId};
+  renderMenuItems();
+  updateCartBars();
+  toast(item.name+' added to cart');
+}
+
+function changeItemQty(itemId, delta) {
+  if(!cart[itemId]) return;
+  cart[itemId].qty += delta;
+  if(cart[itemId].qty <= 0) delete cart[itemId];
+  if(Object.keys(cart).length===0) currentRestId=null;
+  renderMenuItems();
+  updateCartBars();
+}
+
+function goCart() {
+  const rest = restaurants.find(r=>r.id===currentRestId);
+  if(rest) document.getElementById('cartRestName').textContent=rest.name;
+  renderCartItems();
+  show('cartScreen');
+  document.getElementById('cartScroll').scrollTop=0;
+}
+
+function goMenuFromCart() {
+  if(currentRestId) openRestaurant(currentRestId);
+  else show('homeScreen');
+}
+
+function renderCartItems() {
+  const items = Object.values(cart);
+  const rawItemTotal = Object.values(cart).reduce((s,v)=>s+v.item.price*v.qty,0);
+  const pkgTotal = packagingTotal();
+  const itemTotal = rawItemTotal;
+  const total = rawItemTotal + pkgTotal + DELIVERY + PLATFORM + GST;
+  const list = document.getElementById('cartItemsList');
+  list.innerHTML = items.map(({item,qty})=>`
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #f5f5f5">
+      <div style="display:flex;gap:8px;flex:1">
+        <div class="${item.veg?'veg-dot':'menu-item-nonveg'}" style="margin-top:2px"><div class="${item.veg?'veg-inner':'menu-item-nv-dot'}"></div></div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#111">${item.name}</div>
+          <div style="font-size:12px;color:#888;margin-top:2px">₹${item.price} each${item.packaging?' + ₹30 packaging':''}</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+        <div class="qty-ctrl">
+          <div class="qty-btn" onclick="cartChangeQty('${item.id}',-1)">−</div>
+          <div class="qty-num">${qty}</div>
+          <div class="qty-btn" onclick="cartChangeQty('${item.id}',1)">+</div>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:#111">₹${(item.price+(item.packaging?30:0))*qty}</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('billItemTotal').textContent='₹'+itemTotal;
+  // show or hide packaging row
+  const pkgRow = document.getElementById('billPkgRow');
+  if(pkgTotal>0){
+    pkgRow.style.display='flex';
+    pkgRow.querySelector('.pkg-amt').textContent='₹'+pkgTotal;
+  } else {
+    pkgRow.style.display='none';
+  }
+  document.getElementById('billTotal').textContent='₹'+total;
+  document.getElementById('placeAmt').textContent='₹'+total;
+  // also update cart bar price
+  const rest = restaurants.find(r=>r.id===currentRestId);
+  if(rest){
+    document.getElementById('homeCartPrice').textContent='₹'+total;
+    document.getElementById('menuCartPrice').textContent='₹'+total;
+  }
+}
+
+function cartChangeQty(itemId, delta) {
+  if(!cart[itemId]) return;
+  cart[itemId].qty+=delta;
+  if(cart[itemId].qty<=0) delete cart[itemId];
+  if(Object.keys(cart).length===0){currentRestId=null;show('homeScreen');updateCartBars();return;}
+  renderCartItems();
+  updateCartBars();
+}
+
+// ── HOME RENDER ──
+const smallR=[
+  {id:'sandwich',name:"Sandwich Jn",emoji:"🧋",rating:"4.4",time:"30-35",discount:"₹60 OFF ₹99",cat:"all",bg:"#e8f5e9"},
+  {id:'samosa',name:"City Samosa",emoji:"🥙",rating:"4.0",time:"35-40",discount:"₹40 OFF ₹349",cat:"all",bg:"#fff8e1"},
+  {id:'gozeroe',name:"Go Zero Ice",emoji:"🍦",rating:"4.2",time:"45-50",discount:"50% OFF",pct:true,cat:"all",bg:"#f3e5f5"},
+  {id:'pizzahut',name:"Pizza Hut",emoji:"🍕",rating:"4.1",time:"25-30",discount:"₹50 OFF ₹299",cat:"pizza",bg:"#fff3e0"},
+  {id:'dominos',name:"Domino's",emoji:"🍕",rating:"4.3",time:"20-25",discount:"Buy 1 Get 1",cat:"pizza",bg:"#fce4ec"},
+  {id:'mcdonalds',name:"McDonald's",emoji:"🍔",rating:"4.0",time:"20-25",discount:"₹30 OFF ₹199",cat:"burger",bg:"#fffde7"},
+  {id:'burgerking',name:"Burger King",emoji:"🍔",rating:"3.9",time:"25-30",discount:"₹40 OFF ₹249",cat:"burger",bg:"#e3f2fd"},
+  {id:'momomagic',name:"Momo Magic",emoji:"🥟",rating:"4.5",time:"30-35",discount:"₹20 OFF ₹149",cat:"momos",bg:"#e8f5e9"},
+  {id:'biryanizone',name:"Biryani Zone",emoji:"🍛",rating:"4.4",time:"40-45",discount:"₹80 OFF ₹499",cat:"biryani",bg:"#fff8e1"},
+];
+
+function renderSmall(cat){
+  const g=document.getElementById('smallgrid');
+  const items=cat==='all'?smallR:smallR.filter(r=>r.cat===cat||r.cat==='all');
+  g.innerHTML=items.slice(0,6).map(r=>`
+    <div class="small-card" onclick="openRestaurant('${r.id}')">
+      <div class="small-thumb" style="background:${r.bg}">${r.emoji}<span class="${r.pct?'pct-b':'disc-badge'}">${r.discount}</span></div>
+      <div class="small-info"><div class="small-name">${r.name}</div><span class="star-s">★ ${r.rating}</span><div class="small-time">🕐 ${r.time} mins</div></div>
+    </div>`).join('');
+}
+
+function renderFeatured(cat){
+  const g=document.getElementById('featgrid');
+  const items=cat==='all'?featuredRestaurants:featuredRestaurants.slice(0,2);
+  g.innerHTML=items.map(r=>`
+    <div class="feat-card" onclick="openRestaurant('${r.id}')">
+      <div class="feat-img-wrap">
+        <div class="feat-img" style="background:${r.color};font-size:80px">${r.emoji}</div>
+        <div class="feat-tag">${r.tag}</div>
+        <div class="feat-bm">🔖</div>
+        <div class="feat-dots"><div class="fd"></div><div class="fd a"></div><div class="fd"></div><div class="fd"></div><div class="fd"></div></div>
+        ${r.gold?'<div style="position:absolute;bottom:0;left:0;right:0;background:#1565c0;color:#fff;font-size:10px;font-weight:700;padding:5px 12px">⭐ Free delivery with Gold</div>':''}
+      </div>
+      <div class="feat-info">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div class="feat-name">${r.name}</div>
+          <div class="feat-rating">★ ${r.rating}<br><span style="font-size:8px;font-weight:400">By ${r.reviews}</span></div>
+        </div>
+        <div class="feat-meta">🕐 ${r.time} | ${r.dist}</div>
+        <div class="feat-offer">🏷️ ${r.offer}</div>
+      </div>
+    </div>`).join('');
+}
+
+function filterCat(cat,el){
+  document.querySelectorAll('.cat-item').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderSmall(cat);renderFeatured(cat);
+}
+function filterClick(el){el.classList.toggle('active');toast(el.textContent.trim()+(el.classList.contains('active')?' ON':' OFF'));}
+function toggleVeg(){const t=document.getElementById('vegtoggle');t.classList.toggle('on');toast(t.classList.contains('on')?'Veg mode ON 🥦':'Veg mode OFF');}
+function navClick(el,name){document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));el.classList.add('active');toast(name+' selected');}
+
+let toastTimer;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2000);}
+
+
+function trackPlaceOrder() {
+    const amount = document.getElementById("placeAmt").textContent;
+    const clickTime = new Date().toLocaleString();
+
+    const orderData = {
+        clicked_at: clickTime,
+        total_amount: amount
+    };
+
+    // Get old logs
+    let logs = JSON.parse(localStorage.getItem("abTestLogs")) || [];
+
+    // Add new order
+    logs.push(orderData);
+
+    // Save logs
+    localStorage.setItem("abTestLogs", JSON.stringify(logs));
+
+    // Build CSV file
+    let csv = "clicked_at,total_amount\n";
+
+    logs.forEach(row => {
+        csv += `"${row.clicked_at}","${row.total_amount}"\n`;
+    });
+
+    // Download CSV automatically
+    const blob = new Blob([csv], {
+        type: "text/csv;charset=utf-8;"
+    });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ab_test_orders.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+
+    toast("Order placed! CSV saved 🎉");
+}
+
+renderSmall('all');
+renderFeatured('all');
+</script>
+</body>
+</html>
